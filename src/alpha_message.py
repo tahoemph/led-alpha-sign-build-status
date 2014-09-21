@@ -3,6 +3,7 @@ import json
 import logging
 import requests
 import serial
+import sys
 import time
 
 logger = logging.getLogger('alpha_message')
@@ -42,7 +43,12 @@ def decode_color(resp):
     else:
         return "failed"
 
-configuration = json.load(open('../config.json'))
+try:
+    configuration_file = sys.argv[1]
+except IndexError:
+    configuration_file = "config.json"
+
+configuration = json.load(open(configuration_file))
 services = configuration['services']
 signs = configuration['signs']
 sign_devs = [serial.Serial(port=sign, baudrate=9600) for sign in signs]
