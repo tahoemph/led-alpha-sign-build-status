@@ -41,6 +41,7 @@ set_message(s, '', file_code='0')  # Turn off priority messages
 # set size of file 'A' to 0x100
 s.write(''.join((SYNC, SOH, 'Z00', STX, 'E$', 'AAU0100FF00', EOT)))
 last_time = datetime.now()
+last_message = None
 while True:
     # loop over the services collecting status
     status = {}
@@ -51,13 +52,14 @@ while True:
     # building if they exist, or if nothing going on then just the date and
     # time.
     if 'failed' in status.values():
-        message = CR.join(x + ': ' + 'failed'
+        message = ESC +'0c' + CR.join(x + ': ' + 'failed'
             for x in status if status[x] == "failed")
-        set_message(s, ESC + '0b' + message)
     elif 'building' in status.values():
-        message = CR.join(x + ': ' + 'building'
+        message = ESC + '0b' + CR.join(x + ': ' + 'building'
             for x in status if status[x] == "building")
-        set_message(s, ESC + '0b' + message)
     else:
-        set_message(s, ESC + '0b' + datetime.now().strftime("%a %b %d %H:%M"))
-    time.sleep(60)
+        message = ESC + '0b' + datetime.now().strftime("%a %b %d %H:%M")
+    if message != last_message:
+        last_message = message
+        set_message(s, message)
+    time.sleep(10)
