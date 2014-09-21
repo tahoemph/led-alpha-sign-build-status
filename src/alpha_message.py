@@ -1,8 +1,11 @@
 from datetime import datetime, timedelta
 import json
+import logging
 import requests
 import serial
 import time
+
+logger = logging.getLogger('alpha_message')
 
 SYNC = chr(0) * 5
 SOH = chr(1)
@@ -21,11 +24,15 @@ def set_enable_ack(dev):
     msg = ''.join((STX, SOH, 'Z00', STX, 'Es1', EOT))
     dev.write(msg)
 
-def set_message(dev, message, file_code='A'):
+def set_message(sign_devs, message, file_code='A'):
     msg_body = ''.join((STX, 'A', file_code, message, ETX))
     checksum = _cksum_message(msg_body)
     msg = ''.join((SYNC, SOH, 'Z00', msg_body, '%04X' % checksum, EOT))
-    dev.write(msg)
+    for dev in sign_devs:
+        try:
+            dev.write(msg)
+        except SerialException:
+            logger.exception()
 
 def decode_color(resp):
     if resp.endswith('anime'):
@@ -35,11 +42,14 @@ def decode_color(resp):
     else:
         return "failed"
 
-services = json.load(open('../config.json'))
-s = serial.Serial(port="/dev/ttyUSB0", baudrate=9600)
-set_message(s, '', file_code='0')  # Turn off priority messages
-# set size of file 'A' to 0x100
-s.write(''.join((SYNC, SOH, 'Z00', STX, 'E$', 'AAU0100FF00', EOT)))
+configuration = json.load(open('../config.json'))
+services = configuration['services']
+signs = configuration['signs']
+sign_devs = [serial.Serial(port=sign, baudrate=9600) for sign in signs]
+set_message(sign_devs, '', file_code='0')  # Turn off priority messages
+# set size of file 'A' to 0x0ff
+for s in sign_devs:
+    s.write(''.join((SYNC, SOH, 'Z00', STX, 'E$', 'AAU0100FF00', EOT)))
 last_time = datetime.now()
 last_message = None
 while True:
@@ -61,5 +71,5 @@ while True:
         message = ESC + '0b' + datetime.now().strftime("%a %b %d %H:%M")
     if message != last_message:
         last_message = message
-        set_message(s, message)
+        set_message(sign_devs, message)
     time.sleep(10)
