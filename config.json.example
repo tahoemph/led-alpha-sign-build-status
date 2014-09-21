@@ -1,0 +1,6 @@
+{
+    "services" : {
+        "servicename" : "http://buildmachine/job/service/job/master/api/json?tree=color"
+    },
+    "signs" : ["/dev/ttySIGN0"]
+}
