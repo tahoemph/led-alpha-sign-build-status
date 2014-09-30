@@ -31,9 +31,9 @@ def set_message(sign_devs, message, file_code='A'):
     msg = ''.join((SYNC, SOH, 'Z00', msg_body, '%04X' % checksum, EOT))
     for dev in sign_devs:
         try:
-            dev.write(msg)
-        except SerialException:
-            logger.exception()
+            dev.write(str(msg))
+        except Exception as e:
+            logger.exception("write " + dev.port)
 
 def decode_color(resp):
     if resp.endswith('anime'):
